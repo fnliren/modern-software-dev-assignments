@@ -1,5 +1,6 @@
 import os
 import re
+import time
 from typing import List, Callable
 from dotenv import load_dotenv
 from ollama import chat
@@ -56,7 +57,7 @@ def YOUR_CONTEXT_PROVIDER(corpus: List[str]) -> List[str]:
 
     For example, return [] to simulate missing context, or [corpus[0]] to include the API docs.
     """
-    return []
+    return corpus
 
 
 def make_user_prompt(question: str, context_docs: List[str]) -> str:
@@ -94,8 +95,32 @@ def test_your_prompt(system_prompt: str, context_provider: Callable[[List[str]],
     context_docs = context_provider(CORPUS)
     user_prompt = make_user_prompt(QUESTION, context_docs)
 
+    print("=" * 80)
+    print("CORPUS:")
+    print("=" * 80)
+    for f in CORPUS:
+        print(f"{f}")
+    print("=" * 80)
+    print()
+
+    print("=" * 80)
+    print("CONTEXT DOCS:")
+    print("=" * 80)
+    for i, doc in enumerate(context_docs):
+        print(f"[{i}] {doc[:200]}..." if len(doc) > 200 else f"[{i}] {doc}")
+    print("=" * 80)
+    print()
+
+    print("=" * 80)
+    print("USER PROMPT:")
+    print("=" * 80)
+    print(user_prompt)
+    print("=" * 80)
+    print()
+
     for idx in range(NUM_RUNS_TIMES):
         print(f"Running test {idx + 1} of {NUM_RUNS_TIMES}")
+        start_time = time.time()
         response = chat(
             model="llama3.1:8b",
             messages=[
@@ -104,6 +129,8 @@ def test_your_prompt(system_prompt: str, context_provider: Callable[[List[str]],
             ],
             options={"temperature": 0.0},
         )
+        elapsed = time.time() - start_time
+        print(f"Chat completion time: {elapsed:.2f}s")
         output_text = response.message.content
         code = extract_code_block(output_text)
         missing = [s for s in REQUIRED_SNIPPETS if s not in code]
