@@ -1,5 +1,6 @@
 import os
 import re
+import time
 from typing import Callable, List, Tuple
 from dotenv import load_dotenv
 from ollama import chat
@@ -15,7 +16,19 @@ Keep the implementation minimal.
 """
 
 # TODO: Fill this in!
-YOUR_REFLEXION_PROMPT = ""
+YOUR_REFLEXION_PROMPT = """
+You are a coding assistant engaging in self-reflection.
+
+Process:
+  1. First, write a brief self-reflection: what did your previous code
+     do wrong, and why did the tests fail?
+  2. Then, output a corrected implementation of is_valid_password.
+
+Output format:
+  - Start with a short paragraph labeled "Reflection:" describing your mistake.
+  - Then output a single fenced Python code block with the fix.
+  - No other prose.
+"""
 
 
 # Ground-truth test suite used to evaluate generated code
@@ -80,6 +93,7 @@ def evaluate_function(func: Callable[[str], bool]) -> Tuple[bool, List[str]]:
 
 
 def generate_initial_function(system_prompt: str) -> str:
+    start = time.perf_counter()
     response = chat(
         model="llama3.1:8b",
         messages=[
@@ -88,7 +102,11 @@ def generate_initial_function(system_prompt: str) -> str:
         ],
         options={"temperature": 0.2},
     )
-    return extract_code_block(response.message.content)
+    elapsed = time.perf_counter() - start
+    raw_content = response.message.content
+    print(f"[generate_initial_function] elapsed: {elapsed:.3f}s")
+    print(f"[generate_initial_function] full model response:\n{raw_content}\n")
+    return extract_code_block(raw_content)
 
 
 def your_build_reflexion_context(prev_code: str, failures: List[str]) -> str:
@@ -96,7 +114,14 @@ def your_build_reflexion_context(prev_code: str, failures: List[str]) -> str:
 
     Return a string that will be sent as the user content alongside the reflexion system prompt.
     """
-    return ""
+    return (
+        "Previous code:\n```python\n"
+        + prev_code
+        + "\n```\n\n"
+        "Failing tests:\n"
+        + "\n".join(f"- {f}" for f in failures)
+        + "\n\nReflect on what went wrong, then provide a fixed implementation."
+    )
 
 
 def apply_reflexion(
@@ -107,6 +132,7 @@ def apply_reflexion(
 ) -> str:
     reflection_context = build_context(prev_code, failures)
     print(f"REFLECTION CONTEXT: {reflection_context}, {reflexion_prompt}")
+    start = time.perf_counter()
     response = chat(
         model="llama3.1:8b",
         messages=[
@@ -115,7 +141,11 @@ def apply_reflexion(
         ],
         options={"temperature": 0.2},
     )
-    return extract_code_block(response.message.content)
+    elapsed = time.perf_counter() - start
+    raw_content = response.message.content
+    print(f"[apply_reflexion] elapsed: {elapsed:.3f}s")
+    print(f"[apply_reflexion] full model response:\n{raw_content}\n")
+    return extract_code_block(raw_content)
 
 
 def run_reflexion_flow(
