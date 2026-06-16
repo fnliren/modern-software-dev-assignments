@@ -1,6 +1,7 @@
 import ast
 import json
 import os
+import time
 from typing import Any, Dict, List, Optional, Tuple, Callable
 
 from dotenv import load_dotenv
@@ -70,7 +71,15 @@ TOOL_REGISTRY: Dict[str, Callable[..., str]] = {
 # ==========================
 
 # TODO: Fill this in!
-YOUR_SYSTEM_PROMPT = ""
+YOUR_SYSTEM_PROMPT = """You have access to one tool:
+- name: "output_every_func_return_type"
+- purpose: read a Python file and return each top-level function's name and return type as "name: return_type" lines.
+- args: {"file_path": optional, defaults to the current script if omitted}
+
+If you want to call the tool, please respond using the following format (ONLY a single JSON object, no commentary, no markdown fences):
+{"tool": "", "args": {}}
+"""
+
 
 
 def resolve_path(p: str) -> str:
@@ -100,15 +109,19 @@ def extract_tool_call(text: str) -> Dict[str, Any]:
 
 
 def run_model_for_tool_call(system_prompt: str) -> Dict[str, Any]:
+    start = time.perf_counter()
     response = chat(
         model="llama3.1:8b",
         messages=[
             {"role": "system", "content": system_prompt},
-            {"role": "user", "content": "Call the tool now."},
+            {"role": "user", "content": "Call the tool for the current script."},
         ],
         options={"temperature": 0.3},
     )
+    elapsed = time.perf_counter() - start
     content = response.message.content
+    print(f"[chat] elapsed: {elapsed:.3f}s")
+    print(f"[chat] raw response:\n{content}\n")
     return extract_tool_call(content)
 
 
