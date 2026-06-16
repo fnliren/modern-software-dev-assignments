@@ -7,18 +7,27 @@ load_dotenv()
 
 NUM_RUNS_TIMES = 5
 
-YOUR_SYSTEM_PROMPT = """Reverse the order of letters in the following word. Only output the reversed word, no other text:
+YOUR_SYSTEM_PROMPT = """
+You are a string reverser. Your only task is to reverse the order of characters in the given input string. You must output ONLY the reversed string — no explanations, no punctuation, no surrounding quotes.
 
-hello
-olleh
+Examples:
 
-Reverse the order of letters in the following word. Only output the reversed word, no other text:
-world
-dlrow
+Input:  hello
+Output: olleh
 
-Reverse the order of letters in the following word. Only output the reversed word, no other text:
-python
-nohtyp
+Input:  http
+Output: ptth
+
+Input:  status
+Output: sutats
+
+Input:  helloworld
+Output: dlrowolleh
+
+Input:  ab12
+Output: 21ba
+
+Now reverse the next input.
 """
 
 USER_PROMPT = """
