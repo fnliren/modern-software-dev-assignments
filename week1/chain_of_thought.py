@@ -1,5 +1,6 @@
 import os
 import re
+import time
 from dotenv import load_dotenv
 from ollama import chat
 
@@ -8,7 +9,9 @@ load_dotenv()
 NUM_RUNS_TIMES = 5
 
 # TODO: Fill this in!
-YOUR_SYSTEM_PROMPT = ""
+YOUR_SYSTEM_PROMPT = """You are a careful mathematician.
+Solve the problem step by step, showing your reasoning clearly.
+"""
 
 
 USER_PROMPT = """
@@ -47,6 +50,7 @@ def test_your_prompt(system_prompt: str) -> bool:
     """
     for idx in range(NUM_RUNS_TIMES):
         print(f"Running test {idx + 1} of {NUM_RUNS_TIMES}")
+        start_time = time.perf_counter()
         response = chat(
             model="llama3.1:8b",
             messages=[
@@ -55,14 +59,20 @@ def test_your_prompt(system_prompt: str) -> bool:
             ],
             options={"temperature": 0.3},
         )
+        elapsed = time.perf_counter() - start_time
         output_text = response.message.content
         final_answer = extract_final_answer(output_text)
+        print(f"[Run {idx + 1}] chat() took {elapsed:.3f}s")
+        print(f"[Run {idx + 1}] --- Full model response ---")
+        print(output_text)
+        print(f"[Run {idx + 1}] --- End of response ---")
+        print(f"[Run {idx + 1}] Extracted final answer: {final_answer}")
         if final_answer.strip() == EXPECTED_OUTPUT.strip():
             print("SUCCESS")
             return True
         else:
             print(f"Expected output: {EXPECTED_OUTPUT}")
-            print(f"Actual output: {final_answer}")
+            print(f"Actual output: {final_answer}\n")
     return False
 
 
